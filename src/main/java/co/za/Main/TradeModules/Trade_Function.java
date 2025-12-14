@@ -38,7 +38,6 @@ public class Trade_Function {
         this.basedOnMarketRate = false; // Default to execution-based
         
         zero_check();
-        set_default_rates();
         run_trade_action();
         }
 

@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 
 public class Test_Trade_Function {
 
-    Logger logger = Logger.getLogger(TestTradeFunctions.class.getName());
+    Logger logger = Logger.getLogger(Test_Trade_Function.class.getName());
 
     {
         logger.setLevel(Level.ALL);
