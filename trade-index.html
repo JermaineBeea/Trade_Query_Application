@@ -3,100 +3,343 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Trade Calculator</title>
+  <title>Trade Calculator - Trade_Function</title>
   <style>
-    body{font-family:Arial,Helvetica,sans-serif;background:#f4f6f8;margin:0;padding:20px}
-    .container{max-width:1000px;margin:auto;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:20px}
-    .header{text-align:center;margin-bottom:16px}
-    .header h1{margin:0 0 6px 0;font-size:22px}
-    .controls{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:12px}
-    .controls label{display:flex;flex-direction:column;font-weight:600;font-size:.92rem}
-    .controls input{padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.92rem}
-    .actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}
-    button{padding:8px 16px;border:none;border-radius:6px;background:#667eea;color:#fff;font-weight:600;cursor:pointer}
-    button:hover{background:#5567c9}
-    button.green{background:#059669}
-    button.green:hover{background:#047857}
-    button.red{background:#dc2626}
-    button.red:hover{background:#b91c1c}
-    table{width:100%;border-collapse:collapse;margin-top:14px}
-    th,td{padding:10px;border:1px solid #e5e7eb;text-align:left;font-size:.92rem}
-    th{background:#667eea;color:#fff}
-    tr:nth-child(even){background:#f9fafb}
-    .status{margin-top:12px;padding:10px;border-radius:6px;display:none}
-    .status.success{background:#d4edda;color:#155724;border:1px solid #c3e6cb}
-    .status.error{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb}
-    .loading{display:none;text-align:center;margin:12px 0;color:#667eea;font-weight:600}
-
-    /* Toggle switch */
-    .toggle-container{display:flex;align-items:center;gap:8px;margin-left:4px}
-    .toggle-switch{position:relative;display:inline-block;width:52px;height:28px}
-    .toggle-switch input{opacity:0;width:0;height:0}
-    .slider{position:absolute;cursor:pointer;inset:0;background:#cbd5e1;transition:.3s;border-radius:28px}
-    .slider:before{content:"";position:absolute;height:22px;width:22px;left:3px;top:3px;background:#fff;transition:.3s;border-radius:50%}
-    .toggle-switch input:checked + .slider{background:#667eea}
-    .toggle-switch input:checked + .slider:before{transform:translateX(24px)}
-
-    /* Formatting */
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      padding: 30px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 3px solid #667eea;
+    }
+    .header h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      color: #1e293b;
+    }
+    .header p {
+      margin: 4px 0;
+      color: #64748b;
+      font-size: 14px;
+    }
+    
+    /* Trade Action Toggle */
+    .section-label {
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: block;
+      color: #1e293b;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .trade-action-toggle {
+      display: inline-flex;
+      background: #f1f5f9;
+      border-radius: 10px;
+      padding: 6px;
+      gap: 6px;
+      border: 2px solid #e2e8f0;
+      margin-bottom: 20px;
+    }
+    .trade-action-btn {
+      padding: 10px 30px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: #64748b;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 14px;
+    }
+    .trade-action-btn.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+      transform: translateY(-2px);
+    }
+    .trade-action-btn:hover:not(.active) {
+      background: #e2e8f0;
+      color: #475569;
+    }
+    
+    /* Controls */
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .controls label {
+      display: flex;
+      flex-direction: column;
+      font-weight: 600;
+      font-size: 13px;
+      color: #475569;
+    }
+    .controls input {
+      padding: 10px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-top: 6px;
+      transition: border-color 0.2s;
+    }
+    .controls input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    /* Actions */
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+      padding: 16px;
+      background: #f8fafc;
+      border-radius: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #667eea;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+    }
+    button.green {
+      background: #10b981;
+    }
+    button.green:hover {
+      background: #059669;
+    }
+    button.red {
+      background: #ef4444;
+    }
+    button.red:hover {
+      background: #dc2626;
+    }
+    
+    /* Toggle Switch */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+    .toggle-container span {
+      font-weight: 600;
+      color: #475569;
+      font-size: 13px;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 56px;
+      height: 30px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: #cbd5e1;
+      transition: 0.3s;
+      border-radius: 30px;
+    }
+    .slider:before {
+      content: "";
+      position: absolute;
+      height: 24px;
+      width: 24px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      transition: 0.3s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .toggle-switch input:checked + .slider {
+      background: #667eea;
+    }
+    .toggle-switch input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 14px 12px;
+      text-align: left;
+      font-size: 13px;
+    }
+    th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 12px;
+    }
+    td {
+      border-bottom: 1px solid #e2e8f0;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
     td:first-child {
-        text-transform: capitalize;
-        letter-spacing: 0.5px;
+      font-weight: 600;
+      color: #1e293b;
+      text-transform: capitalize;
+    }
+    td input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    td input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    /* Status Messages */
+    .status {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      display: none;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .status.success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 2px solid #10b981;
+    }
+    .status.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 2px solid #ef4444;
+    }
+    
+    /* Loading */
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 16px 0;
+      color: #667eea;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .loading:after {
+      content: '...';
+      animation: dots 1.5s infinite;
+    }
+    @keyframes dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #64748b;
+    }
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
     }
   </style>
 </head>
 <body>
-  <script>
-    // Application configuration - starts with zeros, these are just for the "defaults" button
-    const APP_DEFAULTS = {
-        spread: 0.01,
-        rateKA: 1,
-        ratePN: 18.5571,
-        basedOnMarketRate: false  // Changed from basedOnExecution to basedOnMarketRate, default false
-    };
-
-    const PROMPT_TO_RESET_TO_ZERO = true;
-    const PROMPT_USER_ON_LOAD_EXAMPLES = true;
-
-    // Example values for the "Revert to Defaults" button (testing/demo purposes)
-    const EXAMPLE_VALUES = {
-        'tradeprofit': { min: 1500, max: 2000 },
-        'profitfactor': { min:0.03, max: 0.04 },
-        'tradeamount': { min: 10000.00, max: 10000.00 },
-        'buyvariable': { min: 18.5571, max: 18.5571 },
-        'sellvariable': { min: 18.6023, max: 18.6023 }
-    };
-  </script>
-
   <div class="container">
     <div class="header">
-      <h1>Trade Calculator</h1>
-      <p>Trading Calculations with Real-time Updates - Starts with Zero Values</p>
+      <h1>🔄 Trade Calculator</h1>
+      <p>Multi-commodity Trading Analysis with SELL/BUY Actions</p>
     </div>
 
-    <!-- Top row: inputs -->
+    <!-- Trade Action Selection -->
+    <div style="margin-bottom: 24px;">
+      <span class="section-label">Trade Action</span>
+      <div class="trade-action-toggle">
+        <button class="trade-action-btn active" data-action="SELL" onclick="setTradeAction('SELL')">
+          📉 SELL
+        </button>
+        <button class="trade-action-btn" data-action="BUY" onclick="setTradeAction('BUY')">
+          📈 BUY
+        </button>
+      </div>
+    </div>
+
+    <!-- Parameter Inputs -->
+    <span class="section-label">Parameters</span>
     <div class="controls">
       <label>
         Spread
-        <input type="number" id="spread" step="0.01"/>
+        <input type="number" id="spread" step="0.01" value="0.01"/>
       </label>
       <label>
-        Rate AP
-        <input type="number" id="rateKA" step="0.01"/>
+        rate BK (Rate of BAse commodity to traded commodity) NB:DEFAULT VALUE USED IMPLICITLY
+        <input type="number" id="rateBK" step="0.0001" value="17.7055"/>
       </label>
       <label>
-        Rate PN
-        <input type="number" id="ratePN" step="0.01"/>
+        rate KN (Rate of tRaded commodity to Nominated commodity) NB:DEFAULT VALUE USED IMPLICITLY
+        <input type="number" id="rateKN" step="0.0001" value="1.0"/>
       </label>
     </div>
 
-    <!-- Actions row: buttons + toggle -->
+    <!-- Action Buttons -->
     <div class="actions">
-      <button onclick="runQuery()">Run Calculations</button>
-      <button onclick="loadExampleDefaults()" class="green">Load Example Values</button>
-      <button onclick="resetToZero()" class="red">Reset to Zero</button>
+      <button onclick="runQuery()">▶️ Run Calculations</button>
+      <button onclick="loadExampleDefaults()" class="green">📋 Load Examples</button>
+      <button onclick="resetToZero()" class="red">🗑️ Reset All</button>
 
-      <div class="toggle-container" title="Toggle calculation mode">
-        <span style="font-weight:600;color:#334155">Based on Market Rate</span>
+      <div class="toggle-container">
+        <span>Market Rate Mode</span>
         <label class="toggle-switch">
           <input type="checkbox" id="basedOnMarketRate"/>
           <span class="slider"></span>
@@ -104,9 +347,10 @@
       </div>
     </div>
 
-    <div class="loading" id="loading">Processing...</div>
+    <div class="loading" id="loading">Processing</div>
 
-    <table>
+    <!-- Data Table -->
+    <table id="dataTableContainer">
       <thead>
         <tr>
           <th>Variable</th>
@@ -116,74 +360,73 @@
           <th>Return Max</th>
         </tr>
       </thead>
-      <tbody id="dataTable"></tbody>
+      <tbody id="dataTable">
+        <tr>
+          <td colspan="5" class="empty-state">
+            <div class="empty-state-icon">📊</div>
+            <div>Loading data...</div>
+          </td>
+        </tr>
+      </tbody>
     </table>
 
     <div id="status" class="status"></div>
   </div>
 
   <script>
-    // Set application defaults for calculation parameters
-    document.getElementById('spread').value = APP_DEFAULTS.spread;
-    document.getElementById('rateKA').value = APP_DEFAULTS.rateKA;
-    document.getElementById('ratePN').value = APP_DEFAULTS.ratePN;
-    document.getElementById('basedOnMarketRate').checked = APP_DEFAULTS.basedOnMarketRate;
+    const APP_DEFAULTS = {
+        tradeAction: 'SELL',
+        spread: 0.01,
+        rateBK: 17.7055,
+        rateKN: 1.0,
+        basedOnMarketRate: false
+    };
+
+    const EXAMPLE_VALUES = {
+        'tradeprofit': { min: -88.0, max: -88.0 },
+        'profitfactor': { min: -0.000497, max: -0.000497 },
+        'tradeamount': { min: 10000.00, max: 10000.00 },
+        'openingvalue': { min: 17.6967, max: 17.6967 },
+        'closingvalue': { min: 17.7055, max: 17.7055 }
+    };
 
     let currentData = [];
+    let currentTradeAction = APP_DEFAULTS.tradeAction;
 
-    document.addEventListener('DOMContentLoaded', loadData);
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('Page loaded, initializing...');
+      loadData();
+    });
 
-    // Load example values for testing/demo (green button)
+    function setTradeAction(action) {
+      currentTradeAction = action;
+      document.querySelectorAll('.trade-action-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.action === action);
+      });
+      console.log('Trade action set to:', action);
+      showStatus(`Trade action changed to ${action}`, 'success');
+    }
+
     async function loadExampleDefaults() {
-      if (PROMPT_USER_ON_LOAD_EXAMPLES && !confirm('This will overwrite current values with examples. Continue?')) {
-        return;
-      }
+      if (!confirm('Load example values? This will overwrite current inputs.')) return;
+      
       showLoading(true);
       try {
-        let successCount = 0;
-        
-        // Update each variable with example values
         for (const [variable, values] of Object.entries(EXAMPLE_VALUES)) {
-          // Update minimum
-          await fetch('/api/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              variable: variable, 
-              column: 'minimum', 
-              value: values.min.toString() 
-            })
-          });
-          
-          // Update maximum
-          await fetch('/api/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              variable: variable, 
-              column: 'maximum', 
-              value: values.max.toString() 
-            })
-          });
-          
-          successCount++;
+          await updateValue(variable, 'minimum', values.min, true);
+          await updateValue(variable, 'maximum', values.max, true);
         }
-        
-        // Reload the table to show new example values
         await loadData();
-        showStatus(`Loaded example values for ${successCount} variables!`, 'success');
-        
+        showStatus('✅ Example values loaded successfully!', 'success');
       } catch (error) {
-        showStatus('Error loading example values: ' + error.message, 'error');
+        showStatus('❌ Error loading examples: ' + error.message, 'error');
       }
       showLoading(false);
     }
 
-    // Reset all values to zero (red button)
     async function resetToZero() {
-        if (PROMPT_TO_RESET_TO_ZERO && !confirm('This will reset all values to zero. Continue?')) {
-        return;
-      }
+      if (!confirm('Reset all values to zero?')) return;
       
       showLoading(true);
       try {
@@ -195,36 +438,41 @@
         
         const result = await response.json();
         if (result.success) {
-          await loadData(); // Reload table
-          showStatus('All values reset to zero successfully!', 'success');
+          await loadData();
+          showStatus('✅ All values reset to zero', 'success');
         } else {
-          showStatus('Reset failed: ' + (result.error || 'Unknown error'), 'error');
+          showStatus('❌ Reset failed: ' + (result.error || 'Unknown error'), 'error');
         }
-        
       } catch (error) {
-        showStatus('Error resetting values: ' + error.message, 'error');
+        showStatus('❌ Error: ' + error.message, 'error');
       }
       showLoading(false);
     }
 
     async function loadData() {
+      console.log('Loading data from API...');
       showLoading(true);
+      
       try {
         const response = await fetch('/api/data');
         const result = await response.json();
+        
+        console.log('API Response:', result);
+        
         if (result.data && result.data.length > 0) {
           currentData = result.data;
           populateTable(result.data);
-          showStatus('Data loaded successfully', 'success');
+          console.log('Data loaded successfully:', result.data.length, 'records');
         } else {
-          showStatus('No data available - application starts with zero values', 'success');
-          // Create empty table structure
+          console.warn('No data returned from API');
           populateTable([]);
         }
       } catch (error) {
-        showStatus('Error loading data: ' + error.message, 'error');
-        populateTable([]); // Show empty table
+        console.error('Error loading data:', error);
+        showStatus('❌ Failed to load data: ' + error.message, 'error');
+        populateTable([]);
       }
+      
       showLoading(false);
     }
 
@@ -232,57 +480,85 @@
       const tbody = document.getElementById('dataTable');
       tbody.innerHTML = '';
       
+      console.log('Populating table with', data.length, 'rows');
+      
       if (data.length === 0) {
-        // Show empty message
-        const row = document.createElement('tr');
-        row.innerHTML = '<td colspan="5" style="text-align:center;color:#666;font-style:italic">Application starts with zero values - load examples or run calculations</td>';
-        tbody.appendChild(row);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="empty-state">
+              <div class="empty-state-icon">📭</div>
+              <div>No data available. Click "Load Examples" or "Run Calculations"</div>
+            </td>
+          </tr>
+        `;
         return;
       }
       
       data.forEach(item => {
+        console.log('Adding row for:', item.variable);
         const row = document.createElement('tr');
+        
+        const minValue = item.minimum || '0';
+        const maxValue = item.maximum || '0';
+        const returnMinValue = parseFloat(item.returnmin || 0).toFixed(6);
+        const returnMaxValue = parseFloat(item.returnmax || 0).toFixed(6);
+        
         row.innerHTML = `
           <td>${item.variable}</td>
-          <td><input type="number" step="0.000001" value="${item.minimum}"
-              onchange="updateValue('${item.variable}', 'minimum', this.value)"></td>
-          <td><input type="number" step="0.000001" value="${item.maximum}"
-              onchange="updateValue('${item.variable}', 'maximum', this.value)"></td>
-          <td>${parseFloat(item.returnmin).toFixed(6)}</td>
-          <td>${parseFloat(item.returnmax).toFixed(6)}</td>
+          <td>
+            <input type="number" 
+                   step="0.000001" 
+                   value="${minValue}"
+                   onchange="updateValue('${item.variable}', 'minimum', this.value)">
+          </td>
+          <td>
+            <input type="number" 
+                   step="0.000001" 
+                   value="${maxValue}"
+                   onchange="updateValue('${item.variable}', 'maximum', this.value)">
+          </td>
+          <td>${returnMinValue}</td>
+          <td>${returnMaxValue}</td>
         `;
         tbody.appendChild(row);
       });
     }
 
-    async function updateValue(variable, column, value) {
+    async function updateValue(variable, column, value, silent = false) {
       try {
         const response = await fetch('/api/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variable, column, value })
+          body: JSON.stringify({ variable, column, value: value.toString() })
         });
+        
         const result = await response.json();
+        
         if (result.success) {
-          showStatus(`Updated ${variable} ${column} to ${value}`, 'success');
+          if (!silent) {
+            showStatus(`✅ Updated ${variable}.${column} = ${value}`, 'success');
+          }
+          console.log(`Updated ${variable}.${column} = ${value}`);
         } else {
-          showStatus('Update failed: ' + (result.error || 'Unknown error'), 'error');
+          showStatus('❌ Update failed: ' + (result.error || 'Unknown error'), 'error');
         }
       } catch (error) {
-        showStatus('Error updating value: ' + error.message, 'error');
+        showStatus('❌ Error: ' + error.message, 'error');
       }
     }
 
     async function runQuery() {
       showLoading(true);
+      
       const params = {
+        tradeAction: currentTradeAction,
         spread: parseFloat(document.getElementById('spread').value) || APP_DEFAULTS.spread,
-        rateKA: parseFloat(document.getElementById('rateKA').value) || APP_DEFAULTS.rateKA,
-        ratePN: parseFloat(document.getElementById('ratePN').value) || APP_DEFAULTS.ratePN,
-        basedOnMarketRate: document.getElementById('basedOnMarketRate').checked ?? APP_DEFAULTS.basedOnMarketRate
+        rateBK: parseFloat(document.getElementById('rateBK').value) || APP_DEFAULTS.rateBK,
+        rateKN: parseFloat(document.getElementById('rateKN').value) || APP_DEFAULTS.rateKN,
+        basedOnMarketRate: document.getElementById('basedOnMarketRate').checked
       };
       
-      console.log('Running calculations with parameters:', params);
+      console.log('Running query with params:', params);
       
       try {
         const response = await fetch('/api/query', {
@@ -290,17 +566,22 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(params)
         });
+        
         const result = await response.json();
+        console.log('Query result:', result);
+        
         if (result.success && result.data) {
           currentData = result.data.data;
           populateTable(result.data.data);
-          showStatus(result.message || 'Calculations completed successfully', 'success');
+          showStatus('✅ ' + (result.message || 'Calculations completed!'), 'success');
         } else {
-          showStatus('Query failed: ' + (result.error || 'Unknown error'), 'error');
+          showStatus('❌ Query failed: ' + (result.error || 'Unknown error'), 'error');
         }
       } catch (error) {
-        showStatus('Error running calculations: ' + error.message, 'error');
+        console.error('Query error:', error);
+        showStatus('❌ Error: ' + error.message, 'error');
       }
+      
       showLoading(false);
     }
 
@@ -309,7 +590,7 @@
       statusDiv.textContent = message;
       statusDiv.className = `status ${type}`;
       statusDiv.style.display = 'block';
-      setTimeout(() => { statusDiv.style.display = 'none'; }, 4000);
+      setTimeout(() => { statusDiv.style.display = 'none'; }, 5000);
     }
 
     function showLoading(show) {

@@ -12,7 +12,7 @@ public class WebAppDataBase implements AutoCloseable {
     private String FILENAME = "WebAppDataBase";
 
     public WebAppDataBase() throws SQLException {
-        this(false); // Default: don't reset on startup
+        this(false);
     }
 
     public WebAppDataBase(boolean resetOnStartup) throws SQLException {
@@ -23,9 +23,6 @@ public class WebAppDataBase implements AutoCloseable {
         createTable();
     }
 
-    /**
-     * Delete existing database and SQL files
-     */
     public void deleteExistingFiles() {
         try {
             File dbFile = new File(dataBaseName);
@@ -58,34 +55,68 @@ public class WebAppDataBase implements AutoCloseable {
         
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
-            // Only populate if table is completely empty
             populateTableIfEmpty();
         }
     }
 
-    /**
-     * Only populate if table is completely empty - always with zeros
-     */
     private void populateTableIfEmpty() throws SQLException {
-        // Check if table is empty
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
             
             if (rs.next() && rs.getInt(1) == 0) {
-                // Table is empty - populate with zero values
                 System.out.println("Table is empty - populating with zero values...");
                 populateWithZeros();
             } else {
-                System.out.println("Table already contains data - keeping existing values");
+                System.out.println("Table already contains data - checking if migration needed...");
+                // Check if old variable names exist and migrate if needed
+                migrateOldVariableNamesIfNeeded();
             }
         }
     }
 
     /**
-     * Populate table with all zeros (clean slate)
+     * Migrate old variable names (buyvariable, sellvariable) to new names (openingvalue, closingvalue)
      */
+    private void migrateOldVariableNamesIfNeeded() throws SQLException {
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT variable FROM " + tableName)) {
+            
+            boolean hasBuyVariable = false;
+            boolean hasSellVariable = false;
+            boolean hasOpeningValue = false;
+            boolean hasClosingValue = false;
+            
+            while (rs.next()) {
+                String var = rs.getString("variable");
+                if ("buyvariable".equals(var)) hasBuyVariable = true;
+                if ("sellvariable".equals(var)) hasSellVariable = true;
+                if ("openingvalue".equals(var)) hasOpeningValue = true;
+                if ("closingvalue".equals(var)) hasClosingValue = true;
+            }
+            
+            // If old names exist but new names don't, perform migration
+            if ((hasBuyVariable || hasSellVariable) && (!hasOpeningValue || !hasClosingValue)) {
+                System.out.println("=== MIGRATION DETECTED ===");
+                System.out.println("Migrating from old variable names to new variable names...");
+                
+                if (hasSellVariable && !hasOpeningValue) {
+                    stmt.executeUpdate("UPDATE " + tableName + " SET variable = 'openingvalue' WHERE variable = 'sellvariable'");
+                    System.out.println("✅ Migrated sellvariable → openingvalue");
+                }
+                
+                if (hasBuyVariable && !hasClosingValue) {
+                    stmt.executeUpdate("UPDATE " + tableName + " SET variable = 'closingvalue' WHERE variable = 'buyvariable'");
+                    System.out.println("✅ Migrated buyvariable → closingvalue");
+                }
+                
+                System.out.println("=== MIGRATION COMPLETE ===");
+            }
+        }
+    }
+
     private void populateWithZeros() throws SQLException {
-        String[] variables = {"tradeprofit", "profitfactor", "tradeamount", "buyvariable", "sellvariable"};
+        // UPDATED: Use openingvalue and closingvalue instead of buyvariable and sellvariable
+        String[] variables = {"tradeprofit", "profitfactor", "tradeamount", "openingvalue", "closingvalue"};
         
         String insertSQL = "INSERT INTO " + tableName + 
             " (variable, minimum, maximum, returnmin, returnmax) VALUES (?, 0, 0, 0, 0)";
@@ -99,9 +130,6 @@ public class WebAppDataBase implements AutoCloseable {
         }
     }
 
-    /**
-     * Reset all input values (min/max) to zero, keep calculated values
-     */
     public void resetInputValuesToZero() throws SQLException {
         System.out.println("Resetting input values (min/max) to zero...");
         
@@ -112,9 +140,6 @@ public class WebAppDataBase implements AutoCloseable {
         }
     }
 
-    /**
-     * Reset ALL values to zero - complete reset
-     */
     public void resetAllValuesToZero() throws SQLException {
         System.out.println("Resetting ALL values to zero...");
         
@@ -131,9 +156,11 @@ public class WebAppDataBase implements AutoCloseable {
             pstmt.setString(1, variable);
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
-                return rs.getBigDecimal(columnName);
+                BigDecimal value = rs.getBigDecimal(columnName);
+                return value != null ? value : BigDecimal.ZERO;
             } else {
-                throw new SQLException("Variable not found: " + variable);
+                System.err.println("Variable not found: " + variable + " - returning ZERO");
+                return BigDecimal.ZERO;
             }
         }
     }
@@ -166,7 +193,6 @@ public class WebAppDataBase implements AutoCloseable {
         }
     }
 
-    // NEW: Method to refresh input values from the web interface
     public void refreshInputValues() throws SQLException {
         System.out.println("Refreshing input values from current database state...");
         try (Statement stmt = connection.createStatement();
@@ -176,8 +202,9 @@ public class WebAppDataBase implements AutoCloseable {
                 String var = rs.getString("variable");
                 BigDecimal min = rs.getBigDecimal("minimum");
                 BigDecimal max = rs.getBigDecimal("maximum");
-                System.out.println("Current " + var + ": min=" + min.toPlainString() + 
-                                 ", max=" + max.toPlainString());
+                System.out.println("Current " + var + ": min=" + 
+                    (min != null ? min.toPlainString() : "NULL") + 
+                    ", max=" + (max != null ? max.toPlainString() : "NULL"));
             }
         }
     }

@@ -8,6 +8,7 @@ import java.net.InetSocketAddress;
 import java.math.BigDecimal;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import co.za.Main.TradeModules.TradeAction;
 
 public class WebServerApplication {
     
@@ -21,18 +22,16 @@ public class WebServerApplication {
     private void setupServer() throws IOException {
         server = HttpServer.create(new InetSocketAddress(8080), 0);
         
-        // Endpoints
         server.createContext("/", new StaticFileHandler());
         server.createContext("/api/data", new DataHandler());
         server.createContext("/api/update", new UpdateHandler());
         server.createContext("/api/query", new QueryHandler());
-        server.createContext("/api/reset", new ResetHandler()); // Reset endpoint
+        server.createContext("/api/reset", new ResetHandler());
         
         server.start();
         System.out.println("Trade Web Server running at: http://localhost:8080");
     }
     
-    // Serve HTML page
     class StaticFileHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -47,7 +46,6 @@ public class WebServerApplication {
         }
     }
     
-    // Get current data from database
     class DataHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -70,7 +68,6 @@ public class WebServerApplication {
         }
     }
     
-    // Update variable values
     class UpdateHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -102,7 +99,6 @@ public class WebServerApplication {
         }
     }
     
-    // Reset Handler
     class ResetHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -141,7 +137,6 @@ public class WebServerApplication {
         }
     }
     
-    // Run trade calculations with enhanced parameters
     class QueryHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -157,29 +152,35 @@ public class WebServerApplication {
                 try {
                     String body = readBody(exchange);
                     
-                    // Parse all parameters from the request
+                    // Parse trade action (SELL or BUY)
+                    String tradeActionStr = parseStringValue(body, "tradeAction");
+                    TradeAction tradeAction = "BUY".equalsIgnoreCase(tradeActionStr) 
+                        ? TradeAction.BUY 
+                        : TradeAction.SELL;
+                    
                     boolean basedOnMarketRate = parseBooleanValue(body, "basedOnMarketRate");
                     BigDecimal spread = parseDecimalValue(body, "spread", new BigDecimal("0.001"));
-                    BigDecimal rateKA = parseDecimalValue(body, "rateKA", new BigDecimal("0.95"));
-                    BigDecimal ratePN = parseDecimalValue(body, "ratePN", new BigDecimal("0.98"));
+                    BigDecimal rateBK = parseDecimalValue(body, "rateBK", new BigDecimal("0.95"));
+                    BigDecimal rateKN = parseDecimalValue(body, "rateKN", new BigDecimal("0.98"));
                     
                     System.out.println("Query Parameters:");
+                    System.out.println("- Trade Action: " + tradeAction);
                     System.out.println("- Based on Market Rate: " + basedOnMarketRate);
                     System.out.println("- Spread: " + spread);
-                    System.out.println("- Rate KA: " + rateKA);
-                    System.out.println("- Rate PN: " + ratePN);
+                    System.out.println("- Rate PK: " + rateBK);
+                    System.out.println("- Rate PN: " + rateKN);
                     
                     try (WebAppDataBase db = new WebAppDataBase()) {
-                        // Create enhanced query implementation with custom parameters
                         WebQueryImplementation queryImpl = new WebQueryImplementation(
-                            basedOnMarketRate, spread, rateKA, ratePN);
+                            tradeAction, basedOnMarketRate, spread, rateBK, rateKN);
                         queryImpl.populateTable(db);
                         
                         String json = buildDataJson(db);
                         String responseMsg = String.format(
-                            "Query executed successfully! (Mode: %s, Spread: %s, RateKA: %s, RatePN: %s)", 
+                            "Query executed successfully! (Action: %s, Mode: %s, Spread: %s, rateBK: %s, rateKN: %s)", 
+                            tradeAction,
                             basedOnMarketRate ? "Market-Based" : "Execution-Based", 
-                            spread, rateKA, ratePN
+                            spread, rateBK, rateKN
                         );
                         
                         sendJsonResponse(exchange, "{\"success\":true,\"message\":\"" + responseMsg + "\",\"data\":" + json + "}");
@@ -193,7 +194,6 @@ public class WebServerApplication {
         }
     }
     
-    // Helper methods
     private void addCorsHeaders(HttpExchange exchange) {
         exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
         exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
@@ -248,7 +248,7 @@ public class WebServerApplication {
     }
     
     private String buildDataJson(WebAppDataBase db) throws Exception {
-        String[] variables = {"tradeprofit", "profitfactor", "tradeamount", "buyvariable", "sellvariable"};
+        String[] variables = {"tradeprofit", "profitfactor", "tradeamount", "openingvalue", "closingvalue"};
         StringBuilder json = new StringBuilder("{\"data\":[");
         
         for (int i = 0; i < variables.length; i++) {
@@ -272,7 +272,6 @@ public class WebServerApplication {
     }
     
     private String getHtmlContent() {
-        // You should save the HTML artifact I created as "trade-index.html" in your project root
         try {
             return new String(java.nio.file.Files.readAllBytes(
                 java.nio.file.Paths.get(filename)));
@@ -298,7 +297,7 @@ public class WebServerApplication {
                 <div class="error">
                     <h3>Missing Interface File</h3>
                     <p>Please save the updated HTML interface as <strong>%s</strong> in your project root directory.</p>
-                    <p>The interface includes controls for spread, rateKA, ratePN, and the basedOnMarketRate toggle.</p>
+                    <p>The interface includes controls for trade action (SELL/BUY), spread, rateBK, rateKN, and basedOnMarketRate toggle.</p>
                 </div>
             </body>
             </html>

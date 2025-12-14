@@ -5,8 +5,8 @@ import java.math.RoundingMode;
 public class Trade_Function {
 
     BigDecimal spread;
-    BigDecimal ratePK;
-    BigDecimal ratePN;
+    BigDecimal rateBK;
+    BigDecimal rateKN;
     BigDecimal tradeAmount;
     BigDecimal opening_factor;
     BigDecimal closing_factor;
@@ -25,7 +25,7 @@ public class Trade_Function {
 
     public Trade_Function(
         TradeAction action, BigDecimal spread,
-        BigDecimal ratePK, BigDecimal ratePN, BigDecimal tradeAmount,
+        BigDecimal rateBK, BigDecimal rateKN, BigDecimal tradeAmount,
         BigDecimal opening_value, BigDecimal closing_value){
         
         this.tradeAmount = tradeAmount;
@@ -33,13 +33,13 @@ public class Trade_Function {
         this.closing_value = closing_value;
         this.action = action;
         this.spread = spread;
-        this.ratePK = ratePK;
-        this.ratePN = ratePN;
+        this.rateBK = rateBK;
+        this.rateKN = rateKN;
         this.basedOnMarketRate = false; // Default to execution-based
         
         zero_check();
+        set_default_rates();
         run_trade_action();
-        
         }
 
     public void zero_check(){
@@ -54,6 +54,17 @@ public class Trade_Function {
             }
         }
     }
+
+    public void set_default_rates(){
+        if(action == TradeAction.SELL){
+            rateBK = BigDecimal.ONE;
+            rateKN = BigDecimal.ONE;
+        } else if (action == TradeAction.BUY){
+            rateBK = opening_value;
+            rateKN = BigDecimal.ONE.divide(closing_value, 10, RoundingMode.HALF_UP);
+        }
+    }
+
 
     public void run_trade_action(){
         if (action == TradeAction.SELL) {
@@ -102,19 +113,19 @@ public class Trade_Function {
     }
 
     public BigDecimal returnProfit(BigDecimal tradeAmount) {
-        return tradeAmount.multiply(ratePK).multiply(ratePN).multiply((opening_factor.multiply(closing_factor)).subtract(BigDecimal.ONE));
+        return tradeAmount.multiply(rateBK).multiply(rateKN).multiply((opening_factor.multiply(closing_factor)).subtract(BigDecimal.ONE));
     }
 
     public BigDecimal returnProfitFactor(BigDecimal tradeProfit, BigDecimal tradeAmount) {
-        return tradeProfit.divide(tradeAmount.multiply(ratePK).multiply(ratePN), 10, RoundingMode.HALF_UP);
+        return tradeProfit.divide(tradeAmount.multiply(rateBK).multiply(rateKN), 10, RoundingMode.HALF_UP);
     }
 
     public BigDecimal returnTradeAmount(BigDecimal tradeProfit, BigDecimal tradeAmount){
-        return tradeProfit.divide(ratePK.multiply(ratePN).multiply((opening_factor.multiply(closing_factor)).subtract(BigDecimal.ONE)), 10, RoundingMode.HALF_UP);
+        return tradeProfit.divide(rateBK.multiply(rateKN).multiply((opening_factor.multiply(closing_factor)).subtract(BigDecimal.ONE)), 10, RoundingMode.HALF_UP);
     }
 
     public BigDecimal returnOpening(BigDecimal tradeProfit, BigDecimal tradeAmount) {
-        BigDecimal variable_a = tradeProfit.divide(tradeAmount.multiply(ratePK).multiply(ratePN), 10, RoundingMode.HALF_UP).add(BigDecimal.ONE);
+        BigDecimal variable_a = tradeProfit.divide(tradeAmount.multiply(rateBK).multiply(rateKN), 10, RoundingMode.HALF_UP).add(BigDecimal.ONE);
         BigDecimal variable_b = variable_a.divide(closing_factor, 10, RoundingMode.HALF_UP);
         if(action == TradeAction.SELL){
             return variable_b;
@@ -124,7 +135,7 @@ public class Trade_Function {
     }
 
     public BigDecimal returnClosing(BigDecimal tradeProfit, BigDecimal tradeAmount) {
-        BigDecimal variable_a = tradeProfit.divide(tradeAmount.multiply(ratePK).multiply(ratePN), 10, RoundingMode.HALF_UP).add(BigDecimal.ONE);
+        BigDecimal variable_a = tradeProfit.divide(tradeAmount.multiply(rateBK).multiply(rateKN), 10, RoundingMode.HALF_UP).add(BigDecimal.ONE);
         BigDecimal variable_b = variable_a.divide(opening_factor, 10, RoundingMode.HALF_UP);
         if(action == TradeAction.SELL){
             return BigDecimal.ONE.divide(variable_b, 10, RoundingMode.HALF_UP);

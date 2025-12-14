@@ -23,14 +23,16 @@ public class Test_Trade_Function {
     BigDecimal tradeProfit = new BigDecimal("-88.000000000");
     BigDecimal tradeProfitFactor = new BigDecimal("-0.000497021");
     BigDecimal spread = new BigDecimal("0.01");
-    BigDecimal ratePN = new BigDecimal("1.0");
-    BigDecimal ratePK = new BigDecimal("17.7055");
+    BigDecimal rateKN = new BigDecimal("1.0");
+    BigDecimal rateBK = new BigDecimal("17.7055");
     BigDecimal opening_value = new BigDecimal("17.6967");
     BigDecimal closing_value = new BigDecimal("17.7055");
 
     Trade_Function tradeFunction = new Trade_Function(action, spread,
-        ratePK, ratePN, tradeAmount,
+        rateBK, rateKN, tradeAmount,
         opening_value, closing_value);
+
+    
 
     BigDecimal TOLERANCE = new BigDecimal("0.01");
 
