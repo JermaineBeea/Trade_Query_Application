@@ -133,12 +133,6 @@
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(102,126,234,0.3);
     }
-    button.purple {
-      background: #8b5cf6;
-    }
-    button.purple:hover {
-      background: #7c3aed;
-    }
     button.green {
       background: #10b981;
     }
@@ -329,11 +323,11 @@
         <input type="number" id="spread" step="0.01" value="0.01"/>
       </label>
       <label>
-        Rate BK (Base → Traded)
+        rate BK (Rate of BAse commodity to traded commodity) NB:DEFAULT VALUE USED IMPLICITLY
         <input type="number" id="rateBK" step="0.0001" value="17.7055"/>
       </label>
       <label>
-        Rate KN (Traded → Nominated)
+        rate KN (Rate of tRaded commodity to Nominated commodity) NB:DEFAULT VALUE USED IMPLICITLY
         <input type="number" id="rateKN" step="0.0001" value="1.0"/>
       </label>
     </div>
@@ -341,7 +335,6 @@
     <!-- Action Buttons -->
     <div class="actions">
       <button onclick="runQuery()">▶️ Run Calculations</button>
-      <button onclick="calculateRates()" class="purple">🧮 Calculate Rates</button>
       <button onclick="loadExampleDefaults()" class="green">📋 Load Examples</button>
       <button onclick="resetToZero()" class="red">🗑️ Reset All</button>
 
@@ -400,6 +393,7 @@
     let currentData = [];
     let currentTradeAction = APP_DEFAULTS.tradeAction;
 
+    // Initialize on page load
     document.addEventListener('DOMContentLoaded', () => {
       console.log('Page loaded, initializing...');
       loadData();
@@ -412,38 +406,6 @@
       });
       console.log('Trade action set to:', action);
       showStatus(`Trade action changed to ${action}`, 'success');
-    }
-
-    async function calculateRates() {
-      console.log('Calculate Rates clicked');
-      showLoading(true);
-      
-      try {
-        const response = await fetch('/api/calculate-rates', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            tradeAction: currentTradeAction
-          })
-        });
-        
-        const result = await response.json();
-        console.log('Calculate rates response:', result);
-        
-        if (result.success) {
-          document.getElementById('rateBK').value = result.rateBK;
-          document.getElementById('rateKN').value = result.rateKN;
-          
-          showStatus(`✅ Rates calculated! RateBK: ${result.rateBK}, RateKN: ${result.rateKN}`, 'success');
-        } else {
-          showStatus('❌ Failed to calculate rates: ' + (result.error || 'Unknown error'), 'error');
-        }
-      } catch (error) {
-        console.error('Calculate rates error:', error);
-        showStatus('❌ Error calculating rates: ' + error.message, 'error');
-      }
-      
-      showLoading(false);
     }
 
     async function loadExampleDefaults() {

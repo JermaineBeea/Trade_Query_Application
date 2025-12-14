@@ -6,11 +6,9 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import co.za.Main.TradeModules.TradeAction;
-import java.sql.SQLException;
 
 public class WebServerApplication {
     
@@ -29,7 +27,6 @@ public class WebServerApplication {
         server.createContext("/api/update", new UpdateHandler());
         server.createContext("/api/query", new QueryHandler());
         server.createContext("/api/reset", new ResetHandler());
-        server.createContext("/api/calculate-rates", new CalculateRatesHandler());
         
         server.start();
         System.out.println("Trade Web Server running at: http://localhost:8080");
@@ -140,81 +137,6 @@ public class WebServerApplication {
         }
     }
     
-    // NEW: Calculate Rates Handler
-    class CalculateRatesHandler implements HttpHandler {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-            addCorsHeaders(exchange);
-            
-            if ("OPTIONS".equals(exchange.getRequestMethod())) {
-                exchange.sendResponseHeaders(200, 0);
-                exchange.getResponseBody().close();
-                return;
-            }
-            
-            if ("POST".equals(exchange.getRequestMethod())) {
-                try {
-                    String body = readBody(exchange);
-                    
-                    String tradeActionStr = parseStringValue(body, "tradeAction");
-                    TradeAction tradeAction = "BUY".equalsIgnoreCase(tradeActionStr) 
-                        ? TradeAction.BUY 
-                        : TradeAction.SELL;
-                    
-                    System.out.println("=== Calculate Rates Request ===");
-                    System.out.println("Trade Action: " + tradeAction);
-                    
-                    try (WebAppDataBase db = new WebAppDataBase()) {
-                        // Get opening and closing values from database
-                        BigDecimal openingMin = db.getValueFromColumn("openingvalue", "minimum");
-                        BigDecimal openingMax = db.getValueFromColumn("openingvalue", "maximum");
-                        BigDecimal closingMin = db.getValueFromColumn("closingvalue", "minimum");
-                        BigDecimal closingMax = db.getValueFromColumn("closingvalue", "maximum");
-                        
-                        // Use maximum values (or could use average)
-                        BigDecimal openingValue = openingMax.compareTo(BigDecimal.ZERO) > 0 ? openingMax : openingMin;
-                        BigDecimal closingValue = closingMax.compareTo(BigDecimal.ZERO) > 0 ? closingMax : closingMin;
-                        
-                        System.out.println("Opening Value: " + openingValue.toPlainString());
-                        System.out.println("Closing Value: " + closingValue.toPlainString());
-                        
-                        BigDecimal rateBK;
-                        BigDecimal rateKN;
-                        
-                        // Apply set_default_rates logic from Trade_Function
-                        if (tradeAction == TradeAction.SELL) {
-                            rateBK = BigDecimal.ONE;
-                            rateKN = BigDecimal.ONE;
-                        } else { // BUY
-                            rateBK = openingValue;
-                            rateKN = closingValue.compareTo(BigDecimal.ZERO) > 0 
-                                ? BigDecimal.ONE.divide(closingValue, 10, RoundingMode.HALF_UP)
-                                : BigDecimal.ONE;
-                        }
-                        
-                        System.out.println("Calculated rateBK: " + rateBK.toPlainString());
-                        System.out.println("Calculated rateKN: " + rateKN.toPlainString());
-                        
-                        String response = String.format(
-                            "{\"success\":true,\"rateBK\":\"%s\",\"rateKN\":\"%s\",\"message\":\"Rates calculated successfully\"}",
-                            rateBK.toPlainString(),
-                            rateKN.toPlainString()
-                        );
-                        
-                        sendJsonResponse(exchange, response);
-                    }
-                    
-                } catch (SQLException e) {
-                    System.err.println("Database error: " + e.getMessage());
-                    sendErrorResponse(exchange, "Database error: " + e.getMessage());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    sendErrorResponse(exchange, "Error calculating rates: " + e.getMessage());
-                }
-            }
-        }
-    }
-    
     class QueryHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -230,22 +152,23 @@ public class WebServerApplication {
                 try {
                     String body = readBody(exchange);
                     
+                    // Parse trade action (SELL or BUY)
                     String tradeActionStr = parseStringValue(body, "tradeAction");
                     TradeAction tradeAction = "BUY".equalsIgnoreCase(tradeActionStr) 
                         ? TradeAction.BUY 
                         : TradeAction.SELL;
                     
                     boolean basedOnMarketRate = parseBooleanValue(body, "basedOnMarketRate");
-                    BigDecimal spread = parseDecimalValue(body, "spread", new BigDecimal("0.01"));
-                    BigDecimal rateBK = parseDecimalValue(body, "rateBK", BigDecimal.ONE);
-                    BigDecimal rateKN = parseDecimalValue(body, "rateKN", BigDecimal.ONE);
+                    BigDecimal spread = parseDecimalValue(body, "spread", new BigDecimal("0.001"));
+                    BigDecimal rateBK = parseDecimalValue(body, "rateBK", new BigDecimal("0.95"));
+                    BigDecimal rateKN = parseDecimalValue(body, "rateKN", new BigDecimal("0.98"));
                     
                     System.out.println("Query Parameters:");
                     System.out.println("- Trade Action: " + tradeAction);
                     System.out.println("- Based on Market Rate: " + basedOnMarketRate);
                     System.out.println("- Spread: " + spread);
-                    System.out.println("- Rate BK: " + rateBK);
-                    System.out.println("- Rate KN: " + rateKN);
+                    System.out.println("- Rate PK: " + rateBK);
+                    System.out.println("- Rate PN: " + rateKN);
                     
                     try (WebAppDataBase db = new WebAppDataBase()) {
                         WebQueryImplementation queryImpl = new WebQueryImplementation(
@@ -254,7 +177,7 @@ public class WebServerApplication {
                         
                         String json = buildDataJson(db);
                         String responseMsg = String.format(
-                            "Query executed successfully! (Action: %s, Mode: %s, Spread: %s, RateBK: %s, RateKN: %s)", 
+                            "Query executed successfully! (Action: %s, Mode: %s, Spread: %s, rateBK: %s, rateKN: %s)", 
                             tradeAction,
                             basedOnMarketRate ? "Market-Based" : "Execution-Based", 
                             spread, rateBK, rateKN
